@@ -41,3 +41,18 @@ def parse_data(data):
 data = fetch_crypto_data()
 df = parse_data(data)
 print(df)
+
+
+
+# 2-Data Analysis
+
+top_5_by_market_cap = df.sort_values(by="Market Cap", ascending=False).head(5)
+average_price = df["Price (USD)"].mean()
+highest_price_change = df["24h Price Change (%)"].max()
+lowest_price_change = df["24h Price Change (%)"].min()
+
+
+print("Top 5 Cryptocurrencies by Market Cap:\n", top_5_by_market_cap)
+print("\nAverage Price of Top 50 Cryptocurrencies:", average_price)
+print("\nHighest 24h Price Change (%):", highest_price_change)
+print("Lowest 24h Price Change (%):", lowest_price_change)
