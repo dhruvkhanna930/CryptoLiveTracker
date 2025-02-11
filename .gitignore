@@ -1,3 +1,5 @@
+credentials.json
+
 # Virtual environment files
 env/
 venv/
@@ -68,4 +70,4 @@ coverage.xml
 *.secret
 *.json
 
-credentials.json
+
