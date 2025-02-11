@@ -82,33 +82,83 @@ def upload_to_google_sheets(df, sheet_name):
     return sheet_url
 
 
-# 2-Data Analysis
-def analyze_data(df):
+def generate_summary_report(df):
     top_5_by_market_cap = df.sort_values(by="Market Cap", ascending=False).head(5)
     top_5_names = ", ".join(top_5_by_market_cap["Name"].tolist())
 
     average_price = df["Price (USD)"].mean()
-
     highest_change_row = df.loc[df["24h Price Change (%)"].idxmax()]
     lowest_change_row = df.loc[df["24h Price Change (%)"].idxmin()]
 
     highest_change = f"{highest_change_row['24h Price Change (%)']:.2f}% ({highest_change_row['Name']})"
     lowest_change = f"{lowest_change_row['24h Price Change (%)']:.2f}% ({lowest_change_row['Name']})"
 
-    df["Top 5 by Market Cap"] = top_5_names
-    df["Average Price (Top 50)"] = average_price
-    df["Highest 24h Change (%)"] = highest_change
-    df["Lowest 24h Change (%)"] = lowest_change
+    report_text = f"""
+    Crypto Market Summary Report - {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
-    return df
+    📌 Top 5 Cryptos by Market Cap: {top_5_names}
 
+    📊 Average Price (Top 50): ${average_price:.2f}
+
+    🚀 Highest 24h Change: {highest_change}
+    📉 Lowest 24h Change: {lowest_change}
+    """
+
+    return report_text
+
+def save_report_as_pdf(report_text):
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    report_text = report_text.encode("latin-1", "ignore").decode("latin-1")
+    
+    for line in report_text.split("\n"):
+        pdf.cell(200, 10, txt=line, ln=True, align="L")
+    
+    pdf_output = "crypto_report.pdf"
+    pdf.output(pdf_output, "F")
+    print(f"PDF report saved as {pdf_output}")
+
+
+def upload_report_to_google_docs(report_text, doc_id="1S9tSZOj6zYyBfPSWQ3Pou1G42tVwprhxwMNqPdZin4o"):
+    SCOPES = ["https://www.googleapis.com/auth/documents", "https://www.googleapis.com/auth/drive"]
+    creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+    docs_service = build("docs", "v1", credentials=creds)
+
+    try:
+        requests = [
+            {
+                "insertText": {
+                    "location": {"index": 1},  
+                    "text": f"\n\n{report_text}\n\n"
+                }
+            }
+        ]
+
+        docs_service.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute()
+        doc_url = f"https://docs.google.com/document/d/{doc_id}"
+        print(f"Report updated successfully in Google Doc: {doc_url}")
+        return doc_url
+
+    except HttpError as error:
+        print(f"An error occurred: {error}")
+        return None
 
 
 data = fetch_crypto_data()
 df = parse_data(data)
-df = analyze_data(df)
+df = df[["Timestamp", "Name", "Symbol", "Price (USD)", "Market Cap", "24h Volume", "24h Price Change (%)"]]
 
 df.to_excel("crypto_data.xlsx", index=False)
 print("Data saved to crypto_data.xlsx")
-upload_to_google_sheets(df, "CryptoLiveTracker")
-# print("Data uploaded successfully! View it here: https://docs.google.com/spreadsheets/d/1AbCDEfgHIJKLMNOpQRstuVwXYZ1234567890")
+
+sheet_url = upload_to_google_sheets(df, "CryptoLiveTracker")
+
+report_text = generate_summary_report(df)
+save_report_as_pdf(report_text)
+
+doc_url = upload_report_to_google_docs(report_text)
+
+print(f"\n✅ Report Available at:\nGoogle Sheet: {sheet_url}\nGoogle Doc: {doc_url}")
