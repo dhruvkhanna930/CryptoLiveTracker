@@ -1,5 +1,5 @@
 # Virtual environment files
-venv/
+env/
 .env/
 .env*/
 .vscode/
