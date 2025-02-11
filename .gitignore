@@ -67,3 +67,5 @@ coverage.xml
 *.key
 *.secret
 *.json
+
+credentials.json
